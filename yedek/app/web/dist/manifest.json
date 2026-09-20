@@ -1,0 +1,69 @@
+{
+  "entry": {
+    "js": "/web/dist/web-XLNEHPFW.js",
+    "css": "/web/dist/web-AGWBORFH.css"
+  },
+  "assets": [
+    {
+      "name": "web-XLNEHPFW.js",
+      "size": 217712,
+      "gzip": 67358
+    },
+    {
+      "name": "web-AGWBORFH.css",
+      "size": 74738,
+      "gzip": 16222
+    },
+    {
+      "name": "chunks/admin-AXBCDFH7.js",
+      "size": 387574,
+      "gzip": 143980
+    },
+    {
+      "name": "chunks/admin-XKHXOPKN.css",
+      "size": 32707,
+      "gzip": 6905
+    },
+    {
+      "name": "chunks/App-BIZ2UHKY.css",
+      "size": 26047,
+      "gzip": 6660
+    },
+    {
+      "name": "chunks/App-WVDRNJDA.js",
+      "size": 22711,
+      "gzip": 6709
+    },
+    {
+      "name": "chunks/backdrop-particles-MP57P456.js",
+      "size": 1999,
+      "gzip": 1104
+    },
+    {
+      "name": "chunks/chunk-464M4PIX.js",
+      "size": 548610,
+      "gzip": 137931
+    },
+    {
+      "name": "chunks/chunk-IHMRAGII.js",
+      "size": 8855,
+      "gzip": 3453
+    },
+    {
+      "name": "chunks/chunk-U6W5SFRJ.js",
+      "size": 32189,
+      "gzip": 9219
+    },
+    {
+      "name": "chunks/evidence-depth-YS4HCCUB.js",
+      "size": 2455,
+      "gzip": 1353
+    },
+    {
+      "name": "chunks/token-chart-3d-Z2UBGOJY.js",
+      "size": 5074,
+      "gzip": 2360
+    }
+  ],
+  "generatedAt": "2026-09-18T18:23:08.441Z"
+}

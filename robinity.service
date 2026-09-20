@@ -1,0 +1,27 @@
+[Unit]
+Description=Robinity Intelligence Web & Queue Service
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/curve
+ExecStart=/usr/bin/node scripts/serve-app.js
+Restart=on-failure
+RestartSec=5s
+
+# Ortam değişkenleri
+EnvironmentFile=/var/www/curve/.env
+Environment=NODE_ENV=production
+
+# Kaynak limitleri
+LimitNOFILE=65536
+
+# Loglama
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=robinity-app
+
+[Install]
+WantedBy=multi-user.target

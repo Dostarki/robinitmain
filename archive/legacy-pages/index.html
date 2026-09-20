@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="826x548" href="/assets/robinity-logo.png">
+  <title>Robinity Intelligence Curve V2 · Robinhood Testnet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/site-theme.css">
+  <link rel="stylesheet" href="/console-theme.css">
+<link rel="stylesheet" href="/brand-layout.css">
+</head>
+<body class="test-console">
+  <div class="console-topbar"><a class="console-logo" href="/landing.html"><img class="site-logo" src="/assets/robinity-logo.png" width="38" height="26" alt="" aria-hidden="true">Robinity Intelligence<span>Console</span></a><nav aria-label="Site navigation"><a href="/landing.html">Overview</a><a href="/risk.html">Intelligence</a></nav></div>
+  <main>
+    <header>
+      <div><div class="eyebrow">Robinhood Chain Testnet</div><h1>Robinity Intelligence Curve V2</h1><p class="muted">$100 hedefli canlı eğri durumu, tahsisler ve cüzdan işlemleri.</p></div>
+      <div class="network"><span class="pill ok">Chain 46630</span><button id="connect">Cüzdan bağla</button></div>
+    </header>
+
+    <div class="notice">Bu panel private key saklamaz. İşlem butonları yalnızca bağlı EVM cüzdanında açılan onay penceresinden sonra testnet işlemi gönderir.</div>
+
+    <section class="grid">
+      <div class="card"><div class="label">Index / gelen para</div><div class="value" id="index">—</div><div class="small">Hedef: $100</div></div>
+      <div class="card"><div class="label">Eğride satılan</div><div class="value" id="sold">—</div><div class="small" id="curvePct">—</div></div>
+      <div class="card"><div class="label">Anlık Robinity Intelligence fiyatı</div><div class="value" id="spot">—</div><div class="small" id="fdv">—</div></div>
+      <div class="card"><div class="label">Eğrideki rezerv</div><div class="value" id="reserve">—</div><div class="small" id="curveEth">—</div></div>
+    </section>
+
+    <section class="layout">
+      <div class="card">
+        <h2>Alım ve tahsis</h2>
+        <div class="actions">
+          <div><label for="buyAmount">Alım miktarı (ETH)</label><div class="row"><input id="buyAmount" value="0.001" inputmode="decimal"><button class="primary" id="buy">Robinity Intelligence al</button></div></div>
+          <div class="card" style="padding:11px"><div class="label">Bu alımın tahmini sonucu</div><div class="value" id="quote">—</div><div class="small" id="quoteDetail">Önce miktarı gir, sonra tahmin otomatik yenilenir.</div></div>
+          <div class="card" style="padding:11px"><div class="label">Bağlı cüzdan tahsisi</div><div class="value" id="allocation">Cüzdan bağlanmadı</div><div class="small" id="allocationDetail">—</div></div>
+          <button id="claim" disabled>Robinity Intelligence claim et</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Yönetici kontrolleri</h2>
+        <p class="small" id="adminHint">Bu işlemler yalnız treasury cüzdanıyla kullanılabilir.</p>
+        <div class="actions" style="margin-top:12px">
+          <div><label for="ethUsd">ETH / USD</label><div class="row"><input id="ethUsd" value="2400" inputmode="decimal"><button id="setRate" disabled>Oranı ayarla</button></div></div>
+          <div class="row"><button id="toggleSale" disabled>Satışı değiştir</button><button id="toggleClaims" disabled>Claim’i değiştir</button></div>
+          <div><label for="withdrawAmount">Çekilecek ETH</label><div class="row"><input id="withdrawAmount" value="0.001" inputmode="decimal"><button class="danger" id="withdraw" disabled>Çek</button></div></div>
+          <div><button class="danger" id="withdraw99" disabled>Eğri bakiyesinin %99’unu treasury’ye çek</button><div class="small">V2’de bonding bitmeden de çalışır. İmzadan hemen önce güncel curve ETH bakiyesinin %99’u hesaplanır; kalan %1 contract’ta durur.</div></div>
+          <div class="small">Treasury: <span class="address" id="treasury">—</span></div>
+        </div>
+      </div>
+
+      <div class="card wide">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">Gelen alımlar</h2><button id="refresh">Yenile</button></div>
+        <div id="activity"><p class="small">Yükleniyor…</p></div>
+      </div>
+    </section>
+    <div class="status" id="status"></div>
+  </main>
+
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+
+    const RPC_URL = "https://rpc.testnet.chain.robinhood.com";
+    const CHAIN_ID = 46630n;
+    const CURVE = "0x5C337D8C00977a696523C05243378Afa0A54EF44";
+    const TOKEN = "0xd92989348F779F043336809a375F289B24C3002F";
+    const DEPLOY_BLOCK = 120171825;
+    const CURVE_SUPPLY = ethers.parseUnits("200000000", 18);
+    const provider = new ethers.JsonRpcProvider(RPC_URL, Number(CHAIN_ID));
+    const curveAbi = [
+      "function buy() payable", "function quote(uint256) view returns (uint256 usdAccepted,uint256 weiAccepted,uint256 tokenOut,uint256 refund)",
+      "function currentPriceUsd() view returns (uint256)", "function indexUsd() view returns (uint256)", "function spotFdvUsd() view returns (uint256)",
+      "function totalSold() view returns (uint256)", "function totalAcceptedWei() view returns (uint256)", "function saleOpen() view returns (bool)",
+      "function bondingComplete() view returns (bool)", "function claimsOpen() view returns (bool)", "function TREASURY() view returns (address)",
+      "function commitments(address) view returns (uint256 tokens,uint256 usdWad,uint256 weiAccepted,bool claimed,uint32 commits)",
+      "function claim()", "function setEthUsdWad(uint256)", "function setSaleOpen(bool)", "function setClaimsOpen(bool)", "function withdraw(uint256)",
+      "event Committed(address indexed buyer,uint256 weiSent,uint256 weiAccepted,uint256 usdWad,uint256 tokens,uint256 indexUsdAfter)"
+    ];
+    const tokenAbi = ["function balanceOf(address) view returns (uint256)", "function name() view returns (string)", "function symbol() view returns (string)"];
+    const curve = new ethers.Contract(CURVE, curveAbi, provider);
+    const token = new ethers.Contract(TOKEN, tokenAbi, provider);
+    let browserProvider, signer, account, treasury, saleOpen, claimsOpen;
+    const $ = id => document.getElementById(id);
+    const money = value => new Intl.NumberFormat("en-US", { style:"currency", currency:"USD", maximumFractionDigits:value < 1 ? 6 : 2 }).format(value);
+    const fmt = (value, digits=4) => Number(ethers.formatUnits(value, 18)).toLocaleString("en-US", { maximumFractionDigits:digits });
+    const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
+    const status = (text, kind="") => { $("status").textContent = text; $("status").className = `status ${kind}`; };
+    const explorer = hash => `https://explorer.testnet.chain.robinhood.com/tx/${hash}`;
+
+    function setAdminEnabled(enabled) {
+      ["setRate", "toggleSale", "toggleClaims", "withdraw", "withdraw99"].forEach(id => $(id).disabled = !enabled);
+    }
+
+    async function refreshQuote() {
+      try {
+        const value = ethers.parseEther($("buyAmount").value || "0");
+        const [usd, accepted, tokens, refund] = await curve.quote(value);
+        $("quote").textContent = `${fmt(tokens, 2)} Robinity Intelligence`;
+        $("quoteDetail").textContent = `${money(Number(ethers.formatUnits(usd, 18)))} kabul · ${fmt(accepted, 6)} ETH · ${fmt(refund, 6)} ETH iade`;
+      } catch { $("quote").textContent = "Geçersiz miktar"; }
+    }
+
+    async function refreshAllocation() {
+      if (!account) return;
+      const lot = await curve.commitments(account);
+      $("allocation").textContent = `${fmt(lot.tokens, 2)} Robinity Intelligence`;
+      $("allocationDetail").textContent = `${money(Number(ethers.formatUnits(lot.usdWad, 18)))} · ${fmt(lot.weiAccepted, 6)} ETH · ${Number(lot.commits)} işlem${lot.claimed ? " · claim edildi" : ""}`;
+    }
+
+    async function refreshActivity() {
+      const logs = await curve.queryFilter(curve.filters.Committed(), DEPLOY_BLOCK, "latest");
+      if (!logs.length) { $("activity").innerHTML = '<p class="small">Henüz alım yok.</p>'; return; }
+      $("activity").innerHTML = `<table><thead><tr><th>Gönderen</th><th>ETH</th><th>Robinity Intelligence</th><th>Index sonrası</th><th>İşlem</th></tr></thead><tbody>${logs.reverse().map(log => {
+        const a = log.args;
+        return `<tr><td class="address">${short(a.buyer)}</td><td>${fmt(a.weiAccepted, 6)}</td><td>${fmt(a.tokens, 2)}</td><td>${money(Number(ethers.formatUnits(a.indexUsdAfter, 18)))}</td><td><a target="_blank" rel="noreferrer" href="${explorer(log.transactionHash)}">aç</a></td></tr>`;
+      }).join("")}</tbody></table>`;
+    }
+
+    async function load() {
+      status("Durum okunuyor…");
+      [treasury, saleOpen, claimsOpen] = await Promise.all([curve.TREASURY(), curve.saleOpen(), curve.claimsOpen()]);
+      const [index, sold, price, fdv, testReserve, ethReserve] = await Promise.all([curve.indexUsd(), curve.totalSold(), curve.currentPriceUsd(), curve.spotFdvUsd(), token.balanceOf(CURVE), provider.getBalance(CURVE)]);
+      $("index").textContent = money(Number(ethers.formatUnits(index, 18)));
+      $("sold").textContent = `${fmt(sold, 2)} Robinity Intelligence`;
+      $("curvePct").textContent = `%${(Number(sold * 10000n / CURVE_SUPPLY) / 100).toFixed(2)} curve dolu`;
+      $("spot").textContent = money(Number(ethers.formatUnits(price, 18)));
+      $("fdv").textContent = `Spot FDV: ${money(Number(ethers.formatUnits(fdv, 18)))}`;
+      $("reserve").textContent = `${fmt(testReserve, 2)} Robinity Intelligence`;
+      $("curveEth").textContent = `${fmt(ethReserve, 6)} ETH`;
+      $("treasury").textContent = treasury;
+      $("toggleSale").textContent = saleOpen ? "Satışı kapat" : "Satışı aç";
+      $("toggleClaims").textContent = claimsOpen ? "Claim’i kapat" : "Claim’i aç";
+      await Promise.all([refreshQuote(), refreshAllocation(), refreshActivity()]);
+      status(`Satış ${saleOpen ? "açık" : "kapalı"} · Claim ${claimsOpen ? "açık" : "kapalı"}`, "ok");
+    }
+
+    async function connect() {
+      if (!window.ethereum) throw new Error("MetaMask, Rabby veya başka bir EVM cüzdanı bulunamadı.");
+      browserProvider = new ethers.BrowserProvider(window.ethereum);
+      try { await browserProvider.send("wallet_switchEthereumChain", [{ chainId:"0xb626" }]); }
+      catch (error) {
+        if (error.code !== 4902) throw error;
+        await browserProvider.send("wallet_addEthereumChain", [{ chainId:"0xb626", chainName:"Robinhood Chain Testnet", nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18}, rpcUrls:[RPC_URL], blockExplorerUrls:["https://explorer.testnet.chain.robinhood.com"] }]);
+      }
+      signer = await browserProvider.getSigner(); account = await signer.getAddress();
+      $("connect").textContent = short(account);
+      const isTreasury = account.toLowerCase() === treasury.toLowerCase();
+      setAdminEnabled(isTreasury); $("claim").disabled = false;
+      $("adminHint").textContent = isTreasury ? "Treasury cüzdanı bağlı: yönetici işlemleri kullanılabilir." : "Bağlı cüzdan treasury değil; yönetici butonları kapalı.";
+      await refreshAllocation(); status(`Bağlandı: ${account}`, "ok");
+    }
+
+    async function transaction(label, send) {
+      if (!signer) throw new Error("Önce cüzdan bağla.");
+      status(`${label} cüzdanda onay bekliyor…`);
+      const tx = await send(); status(`${label} zincire gönderildi: ${short(tx.hash)}`);
+      const receipt = await tx.wait();
+      if (receipt.status !== 1) throw new Error(`${label} başarısız.`);
+      status(`${label} onaylandı. ${tx.hash}`, "ok"); await load();
+    }
+
+    $("connect").onclick = () => connect().catch(e => status(e.shortMessage || e.message, "error"));
+    $("refresh").onclick = () => load().catch(e => status(e.shortMessage || e.message, "error"));
+    $("buyAmount").oninput = () => refreshQuote();
+    $("buy").onclick = () => transaction("Alım", () => curve.connect(signer).buy({value:ethers.parseEther($("buyAmount").value)})).catch(e => status(e.shortMessage || e.message, "error"));
+    $("claim").onclick = () => transaction("Claim", () => curve.connect(signer).claim()).catch(e => status(e.shortMessage || e.message, "error"));
+    $("setRate").onclick = () => transaction("ETH/USD oranı", () => curve.connect(signer).setEthUsdWad(ethers.parseUnits($("ethUsd").value, 18))).catch(e => status(e.shortMessage || e.message, "error"));
+    $("toggleSale").onclick = () => transaction("Satış durumu", () => curve.connect(signer).setSaleOpen(!saleOpen)).catch(e => status(e.shortMessage || e.message, "error"));
+    $("toggleClaims").onclick = () => transaction("Claim durumu", () => curve.connect(signer).setClaimsOpen(!claimsOpen)).catch(e => status(e.shortMessage || e.message, "error"));
+    $("withdraw").onclick = () => transaction("Treasury çekimi", () => curve.connect(signer).withdraw(ethers.parseEther($("withdrawAmount").value))).catch(e => status(e.shortMessage || e.message, "error"));
+    $("withdraw99").onclick = () => transaction("Eğri bakiyesinin %99'u treasury'ye çekimi", async () => {
+      const balance = await provider.getBalance(CURVE);
+      const amount = balance * 99n / 100n;
+      if (amount === 0n) throw new Error("Eğride çekilecek ETH yok.");
+      return curve.connect(signer).withdraw(amount);
+    }).catch(e => status(e.shortMessage || e.message, "error"));
+    load().catch(e => status(e.shortMessage || e.message, "error"));
+  </script>
+</body>
+</html>

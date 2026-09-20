@@ -1,0 +1,69 @@
+{
+  "entry": {
+    "js": "/web/dist/web-PCRUHTLF.js",
+    "css": "/web/dist/web-C6MGFOPW.css"
+  },
+  "assets": [
+    {
+      "name": "web-PCRUHTLF.js",
+      "size": 217712,
+      "gzip": 67363
+    },
+    {
+      "name": "web-C6MGFOPW.css",
+      "size": 82815,
+      "gzip": 17844
+    },
+    {
+      "name": "chunks/admin-AX2SCEOE.js",
+      "size": 467137,
+      "gzip": 164750
+    },
+    {
+      "name": "chunks/admin-FS5P6QGF.css",
+      "size": 34361,
+      "gzip": 7247
+    },
+    {
+      "name": "chunks/App-EXTTMUTZ.css",
+      "size": 28575,
+      "gzip": 7257
+    },
+    {
+      "name": "chunks/App-JMDDPY7Y.js",
+      "size": 25937,
+      "gzip": 7763
+    },
+    {
+      "name": "chunks/backdrop-particles-3XGTFLJX.js",
+      "size": 1999,
+      "gzip": 1105
+    },
+    {
+      "name": "chunks/chunk-A3Q6C56B.js",
+      "size": 8855,
+      "gzip": 3453
+    },
+    {
+      "name": "chunks/chunk-KWB7WZYM.js",
+      "size": 32189,
+      "gzip": 9221
+    },
+    {
+      "name": "chunks/chunk-TAWQDRRQ.js",
+      "size": 548610,
+      "gzip": 137931
+    },
+    {
+      "name": "chunks/evidence-depth-ZPPNWWC7.js",
+      "size": 2455,
+      "gzip": 1355
+    },
+    {
+      "name": "chunks/token-chart-3d-M6E27DDF.js",
+      "size": 5074,
+      "gzip": 2361
+    }
+  ],
+  "generatedAt": "2026-09-20T13:48:26.802Z"
+}

@@ -1,0 +1,107 @@
+# Robinity Intelligence — VPS Production Deployment
+#
+# Kullanım Seçenekleri:
+#   1. Hibrit (Önerilen):
+#      docker compose up -d          → Sadece Redis ve PostgreSQL başlatılır (host Node.js uygulaması bağlanır)
+#   2. Tam Docker:
+#      docker compose --profile app up -d --build → Redis, Postgres ve Node.js App container içinde çalışır
+#
+# Yönetim:
+#   docker compose ps             → Container durumlarını listele
+#   docker compose logs -f        → Tüm logları canlı izle
+#   docker compose down           → Durdur
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: robinity-redis
+    ports:
+      - "127.0.0.1:6379:6379"       # Sadece localhost'tan erişim
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 128mb
+        --maxmemory-policy noeviction
+        --save 900 1
+        --save 300 10
+        --save 60 10000
+        --requirepass "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
+        --loglevel notice
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: robinity-postgres
+    ports:
+      - "127.0.0.1:5432:5432"       # Sadece localhost'tan erişim
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-robinity}"
+      POSTGRES_USER: "${POSTGRES_USER:-robinity}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-robinity} -d ${POSTGRES_DB:-robinity}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  # Opsiyonel: Node.js uygulamasını da container içinde çalıştırmak için (`--profile app`)
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: robinity-app
+    ports:
+      - "127.0.0.1:4173:4173"
+    environment:
+      NODE_ENV: production
+      TEST_PANEL_PORT: 4173
+      TRUST_PROXY: 1
+      ADMIN_AUTH_MASTER_KEY: "${ADMIN_AUTH_MASTER_KEY:-}"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-robinity}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-robinity}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+      REDIS_DB: "${REDIS_DB:-0}"
+      QUEUE_AUTO_MIGRATE: 1
+      HELIUS_API_KEY: "${HELIUS_API_KEY:-}"
+      ETHERSCAN_API_KEY: "${ETHERSCAN_API_KEY:-}"
+      BITQUERY_ACCESS_TOKEN: "${BITQUERY_ACCESS_TOKEN:-}"
+      BITQUERY_FREE_TRIAL_UNTIL: "${BITQUERY_FREE_TRIAL_UNTIL:-}"
+      GOPLUS_ACCESS_TOKEN: "${GOPLUS_ACCESS_TOKEN:-}"
+      GOPLUS_APP_KEY: "${GOPLUS_APP_KEY:-}"
+      GOPLUS_APP_SECRET: "${GOPLUS_APP_SECRET:-}"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  redis-data:
+  postgres-data:

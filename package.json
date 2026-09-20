@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "bullmq": "^6.3.8",
+    "esbuild": "^0.28.2",
+    "ethers": "^6.17.0",
+    "ioredis": "^6.0.0",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "solc": "^0.8.7-fixed",
+    "three": "0.186.0"
+  },
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "build": "npm run build:web",
+    "serve": "node scripts/serve-app.js",
+    "migrate": "node scripts/queue/migrate.js",
+    "health": "node scripts/queue/check-vps-health.js",
+    "test:curve": "node scripts/test-curve-math.mjs",
+    "build:landing": "esbuild app/landing-effects/src/scene.js --bundle --minify --format=esm --outdir=app/landing-effects/dist --entry-names=scene --legal-comments=linked",
+    "build:risk": "esbuild app/risk-ui/src/App.jsx --bundle --minify --format=esm --outdir=app/risk-ui/dist --entry-names=risk --external:/assets/*"
+  }
+}
